@@ -1,0 +1,54 @@
+// Originated from aras-p/UnityGaussianSplatting by Aras Pranckevičius
+// https://github.com/aras-p/UnityGaussianSplatting/blob/main/package/Shaders/SplatUtilities.compute
+// Copyright (c) 2023 Aras Pranckevičius
+// Modified by Yize Wu
+// Copyright (c) 2025 Yize Wu
+// SPDX-License-Identifier: MIT
+
+#define GROUP_SIZE 1024
+
+// DeviceRadixSort
+#define KEY_FLOAT
+#define PAYLOAD_UINT
+#pragma multi_compile __ SHOULD_ASCEND
+#pragma multi_compile __ SORT_PAIRS
+#pragma multi_compile __ VULKAN
+
+#pragma kernel InitPayload
+#pragma kernel CalcDistance
+#pragma kernel InitDeviceRadixSort
+#pragma kernel Upsweep
+#pragma kernel Scan
+#pragma kernel Downsweep
+
+// GPU sorting needs wave ops
+#pragma require wavebasic
+#pragma require waveballot
+#pragma use_dxc
+
+#include "DeviceRadixSort.hlsl"
+
+StructuredBuffer<float3> _PositionBuffer;
+float4x4 _MatrixMV;
+
+[numthreads(GROUP_SIZE,1,1)]
+void InitPayload(uint3 id : SV_DispatchThreadID)
+{
+    uint idx = id.x;
+    if (idx >= e_numKeys)
+        return;
+
+    b_sortPayload[idx] = idx;
+}
+
+[numthreads(GROUP_SIZE,1,1)]
+void CalcDistance(uint3 id : SV_DispatchThreadID)
+{
+    uint idx = id.x;
+    if (idx >= e_numKeys)
+        return;
+
+    float3 pos = _PositionBuffer[b_sortPayload[idx]];
+    pos = mul(_MatrixMV, float4(pos.xyz, 1)).xyz;
+    b_sort[idx] = pos.z;
+}

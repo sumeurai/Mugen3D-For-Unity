@@ -12,6 +12,8 @@ This folder contains a Unity sample for the Mugen3D workflow:
 
 ---
 
+https://github.com/user-attachments/assets/2eba79c0-3684-499f-b1b4-a1941d025189
+
 ## Features
 
 - `APIManager` wraps login, JSON requests, image upload, polling, and file download
